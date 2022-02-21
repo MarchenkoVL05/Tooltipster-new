@@ -99,9 +99,8 @@ if (!Element.prototype.closest) {
 		this.checkInterval = null;
 		// this will be the user content shown in the tooltip. A capital "C" is used because there is also a method called content()
 		this.Content;
-		console.log(this.Content);
 		// this is the original element which is being applied the tooltipster plugin
-		this.$el = $(element);
+		this.$el = element;
 		// this will be the element which triggers the appearance of the tooltip on hover/click/custom events.
 		// it will be the same as this.$el if icons are not used (see in the options), otherwise it will correspond to the created icon
 		this.$elProxy;
@@ -116,7 +115,7 @@ if (!Element.prototype.closest) {
 		this.timerHide = null;
 		this.timerShow = null;
 		// this will be the tooltip element (jQuery wrapped HTML element)
-		this.$tooltip;
+		this.$tooltip = document.createElement('div');
 
 		// for backward compatibility
 		this.options.iconTheme = this.options.iconTheme.replace('.', '');
@@ -135,7 +134,6 @@ if (!Element.prototype.closest) {
 
 			// disable the plugin on old browsers (including IE7 and lower)
 			if (document.querySelector) {
-
 				// note : the content is null (empty) by default and can stay that way if the plugin remains initialized but not fed any content. The tooltip will just not appear.
 
 				// let's save the initial value of the title attribute for later restoration if need be.
@@ -164,11 +162,10 @@ if (!Element.prototype.closest) {
 				var c = self.options.functionInit.call(self.$el, self.$el, self.Content);
 				if(typeof c !== 'undefined') self._content_set(c);
 
-				self.$el
 					// strip the title off of the element to prevent the default tooltips from popping up
-					.removeAttribute('title')
+					self.$el.removeAttribute('title');
 					// to be able to find all instances on the page later (upon window events in particular)
-					.classList.add('tooltipstered');
+					self.$el.classList.add('tooltipstered');
 
 				// detect if we're changing the tooltip origin to an icon
 				// note about this condition : if the device has touch capability and self.options.iconTouch is false, you'll have no icons event though you may consider your device as a desktop if it also has a mouse. Not sure why someone would have this use case though.
@@ -190,8 +187,7 @@ if (!Element.prototype.closest) {
 						else self.$elProxy = self.options.icon;
 					}
 
-					self.$elProxy.insertAdjacentElement('afterend', self.$el);
-					self.$elProxy.insertAfter(self.$el);
+					self.$elProxy.insertAdjasentElement('beforeend', self.$el);
 				}
 				else {
 					self.$elProxy = self.$el;
@@ -205,14 +201,13 @@ if (!Element.prototype.closest) {
 				if (self.options.trigger == 'hover') {
 
 					// these binding are for mouse interaction only
-					self.$elProxy
-						.addEventListener('mouseenter', function() {
+					self.$elProxy.addEventListener('mouseenter', function() {
 							if (!deviceIsPureTouch() || self.options.touchDevices) {
 								self.mouseIsOverProxy = true;
 								self._show();
 							}
 						})
-						.addEventListener('mouseleave', function() {
+						self.$elProxy.addEventListener('mouseleave', function() {
 							if (!deviceIsPureTouch() || self.options.touchDevices) {
 								self.mouseIsOverProxy = false;
 							}
@@ -282,16 +277,16 @@ if (!Element.prototype.closest) {
 
 					// if we only want one tooltip open at a time, close all auto-closing tooltips currently open and not already disappearing
 					if (self.options.onlyOne) {
-						var notSelfEl = document.querySelectorAll('.tooltipstered');
-						var notSelfElArray = [];
-						for (var i = 0; i < notSelfEl.length; i++) {
-							if (!notSelfEl[i].querySelector(self.$el)) {
-								notSelfElArray.push(notSelfEl[i]);
+						var notElement = document.querySelectorAll('.tooltipstered');
+						var notElementArray = [];
+						for (var i = 0; i < notElement.length; i++) {
+							if (notElement[i] == self.$el) {
+								notElementArray.push(notElement[i]);
 							}
 						}
-						Array.prototype.forEach.call(notSelfElArray, function(el, i) {
+						Array.prototype.forEach.call(notElementArray, function(el,i) {
 
-							var $el = document.querySelector(el),
+							var $el = el,
 								nss = $el.getAttribute('data-tooltipster-ns');
 
 							// iterate on all tooltips of the element
@@ -328,21 +323,20 @@ if (!Element.prototype.closest) {
 							self.Status = 'appearing';
 
 							if (supportsTransitions()) {
-
-								self.$tooltip
-									.clearQueue()
-									.classList.remove('tooltipster-dying')
-									.addClass('tooltipster-'+ self.options.animation +'-show');
-
-								if (self.options.speed > 0) self.$tooltip.delay(self.options.speed);
-
-								self.$tooltip.queue(finish);
+								
+								if (self.options.speed > 0) {
+									setTimeout(function() {
+										self.$tooltip.classList.remove('tooltipster-dying')
+										self.$tooltip.classList.add('tooltipster-'+ self.options.animation +'-show');
+									},self.options.speed);
+									self.$tooltip.delay(self.options.speed)
+								}
 							}
 							else {
 								// in case the tooltip was currently fading out, bring it back to life
-								self.$tooltip
-									.stop()
-									.fadeIn(finish);
+								self.$tooltip.style.transition = 'all 500ms';
+								self.$tooltip.style.display = 'block';
+								self.$tooltip.style.opacity = '1';
 							}
 						}
 						// if the tooltip is already open, we still need to trigger the method custom callback
@@ -359,8 +353,9 @@ if (!Element.prototype.closest) {
 						var extraTime = self.options.speed;
 
 						// disable horizontal scrollbar to keep overflowing tooltips from jacking with it and then restore it to its previous value
-						self.bodyOverflowX = document.querySelector('body').style.overflowX;
-						document.querySelector('body').style.overflowX = 'hidden';
+						var body = document.querySelector('body');
+						self.bodyOverflowX = window.getComputedStyle(body).getPropertyValue("overflow-X");
+						body.style.overflowX = 'hidden';
 
 						// get some other settings related to building the tooltip
 						var animation = 'tooltipster-' + self.options.animation,
@@ -370,8 +365,7 @@ if (!Element.prototype.closest) {
 							pointerEvents = self.options.interactive ? 'pointer-events: auto;' : '';
 
 						// build the base of our tooltip
-						self.$tooltip.innerHTML = '<div class="tooltipster-base '+ self.options.theme +'" style="'+ minWidth +' '+ maxWidth +' '+ pointerEvents +' '+ animationSpeed +'"><div class="tooltipster-content"></div></div>';
-
+						self.$tooltip.innerHTML += '<div class="tooltipster-base '+ self.options.theme +'" style="'+ minWidth +' '+ maxWidth +' '+ pointerEvents +' '+ animationSpeed +'"><div class="tooltipster-content"></div></div>';
 						// only add the animation class if the user has a browser that supports animations
 						if (supportsTransitions()) self.$tooltip.classList.add(animation);
 
@@ -379,7 +373,7 @@ if (!Element.prototype.closest) {
 						self._content_insert();
 
 						// attach
-						document.querySelector('body').appendChild(self.$tooltip);
+						body.appendChild(self.$tooltip);
 
 						// do all the crazy calculations and positioning
 						self.reposition();
@@ -389,16 +383,15 @@ if (!Element.prototype.closest) {
 
 						// animate in the tooltip
 						if (supportsTransitions()) {
-
-							self.$tooltip.classList.add(animation + '-show');
-
-							if(self.options.speed > 0) self.$tooltip.delay(self.options.speed);
-
-							self.$tooltip.queue(finish);
+							if(self.options.speed > 0) {
+								setTimeout(function() {
+									self.$tooltip.classList.add(animation + '-show');
+								}, self.options.speed);
+							};
 						}
 						else {
+							self.$tooltip.style.transition = 'all' + self.options.speed + 'ms';
 							self.$tooltip.style.display = 'none';
-							self.$tooltip.fadeIn(self.options.speed, finish);
 						}
 
 						// will check if our tooltip origin is removed while the tooltip is shown
@@ -412,9 +405,6 @@ if (!Element.prototype.closest) {
 						// auto-close bindings
 						if (self.options.autoClose) {
 
-							// in case a listener is already bound for autoclosing (mouse or touch, hover or click), unbind it first
-							document.querySelector('body').removeEventListener('.'+ self.namespace);
-
 							// here we'll have to set different sets of bindings for both touch and mouse
 							if (self.options.trigger == 'hover') {
 
@@ -423,7 +413,7 @@ if (!Element.prototype.closest) {
 									// timeout 0 : explanation below in click section
 									setTimeout(function() {
 										// we don't want to bind on click here because the initial touchstart event has not yet triggered its click event, which is thus about to happen
-										document.querySelector('body').addEventListener('touchstart'+ self.namespace, function() {
+										document.querySelector('body').addEventListener('touchstart', function() {
 											self.hide();
 										});
 									}, 0);
@@ -441,17 +431,16 @@ if (!Element.prototype.closest) {
 
 									// as for mouse interaction, we get rid of the tooltip only after the mouse has spent some time out of it
 									var tolerance = null;
-
-									self.$elProxy.appendChild(self.$tooltip)
+									self.$elProxy.appendChild(self.$tooltip);
 										// hide after some time out of the proxy and the tooltip
-										.addEventListener('mouseleave', function() {
+										self.$elProxy.addEventListener('mouseleave', function() {
 											clearTimeout(tolerance);
 											tolerance = setTimeout(function(){
 												self.hide();
 											}, self.options.interactiveTolerance);
 										})
 										// suspend timeout when the mouse is over the proxy or the tooltip
-										.addEventListener('mouseenter', function() {
+										self.$elProxy.addEventListener('mouseenter', function() {
 											clearTimeout(tolerance);
 										});
 								}
@@ -478,6 +467,9 @@ if (!Element.prototype.closest) {
 									document.querySelector('body').addEventListener('click', function() {
 										self.hide();
 									});
+									document.querySelector('body').addEventListener('touchstart', function() {
+										self.hide();
+									});
 								}, 0);
 
 								// if interactive, we'll stop the events that were emitted from inside the tooltip to stop autoClosing
@@ -485,6 +477,9 @@ if (!Element.prototype.closest) {
 
 									// note : the touch events will just not be used if the plugin is not enabled on touch devices
 									self.$tooltip.addEventListener('click', function(event) {
+										event.stopPropagation();
+									});
+									self.$tooltip.addEventListener('touchstart', function(event) {
 										event.stopPropagation();
 									});
 								}
@@ -539,7 +534,7 @@ if (!Element.prototype.closest) {
 						if(areEqual(p.dimension, self.elProxyPosition.dimension)){
 
 							// for elements with a fixed position, we track the top and left properties (relative to window)
-							if(getComputedStyle(self.$elProxy).style.position === 'fixed'){
+							if(getComputedStyle(self.$elProxy).getPropertyValue('position') === 'fixed'){
 								if(areEqual(p.position, self.elProxyPosition.position)) identical = true;
 							}
 							// otherwise, track total offset (relative to document)
@@ -576,13 +571,14 @@ if (!Element.prototype.closest) {
 
 			var self = this,
 				$d = this.$tooltip.querySelector('.tooltipster-content');
-
 			if (typeof self.Content === 'string' && !self.options.contentAsHTML) {
 				$d.textContent = self.Content;
 			}
 			else {
-				$d.innerHTML = null;
-				$d.appendChild(self.Content);
+				while($d.firstChild)
+  				$d.removeChild($d.firstChild);
+
+				$d.innerHTML += self.Content;
 			}
 		},
 
@@ -615,8 +611,8 @@ if (!Element.prototype.closest) {
 							self.$tooltip.style.oTransition = 'all ' + self.options.speed + 'ms, width 0ms, height 0ms, left 0ms, top 0ms';
 							self.$tooltip.style.msTransition = 'all ' + self.options.speed + 'ms, width 0ms, height 0ms, left 0ms, top 0ms';
 							self.$tooltip.style.transition = 'all ' + self.options.speed + 'ms, width 0ms, height 0ms, left 0ms, top 0ms';
-
 							self.$tooltip.classList.add('tooltipster-content-changing');
+
 							// reset the CSS transitions and finish the change animation
 							setTimeout(function() {
 
@@ -627,7 +623,7 @@ if (!Element.prototype.closest) {
 									// after the changing animation has completed, reset the CSS transitions
 									setTimeout(function() {
 
-										if(self.Status !== 'hidden'){	
+										if(self.Status !== 'hidden'){
 											self.$tooltip.webkitTransition = self.options.speed + 'ms';
 											self.$tooltip.mozTransition = self.options.speed + 'ms';
 											self.$tooltip.oTransition = self.options.speed + 'ms';
@@ -639,11 +635,10 @@ if (!Element.prototype.closest) {
 							}, self.options.speed);
 						}
 						else {
-							self.$tooltip.fadeTo(self.options.speed, 0.5, function() {
-								if(self.Status != 'hidden'){
-									self.$tooltip.fadeTo(self.options.speed, 1);
-								}
-							});
+							self.$tooltip.style.opacity = '0.5';
+							if(self.Status != 'hidden'){
+								self.$tooltip.style.opacity = '1';
+							}
 						}
 					}
 				}
@@ -661,8 +656,8 @@ if (!Element.prototype.closest) {
 				},
 				offset: $el.getBoundingClientRect(),
 				position: {
-					left: parseInt(getComputedStyle($el).style.left),
-					top: parseInt(getComputedStyle($el).style.top)
+					left: parseInt(getComputedStyle($el).getPropertyValue('left')),
+					top: parseInt(getComputedStyle($el).getPropertyValue('top'))
 				}
 			};
 		},
@@ -698,25 +693,18 @@ if (!Element.prototype.closest) {
 
 					// detach our content object first, so the next jQuery's remove() call does not unbind its event handlers
 					if (typeof self.Content == 'object' && self.Content !== null) {
-						self.Content.detach();
+						if (self.Content.parentNode !== null) {
+							self.Content.parentNode.removeChild(self.Content);
+						}
 					}
 
-					self.$tooltip.parentNode.removeChild(self.$tooltip);
+					if (self.$tooltip.parentNode !== null) {
+						self.$tooltip.parentNode.removeChild(self.$tooltip);
+					}
+					
 					self.$tooltip = null;
 
-					// unbind orientationchange, scroll and resize listeners
-					$(window).off('.'+ self.namespace);
-
-					$('body')
-						// unbind any auto-closing click/touch listeners
-						.off('.'+ self.namespace)
-						.css('overflow-x', self.bodyOverflowX);
-
-					// unbind any auto-closing click/touch listeners
-					$('body').off('.'+ self.namespace);
-
-					// unbind any auto-closing hover listeners
-					self.$elProxy.off('.'+ self.namespace + '-autoClose');
+					document.querySelector('body').style.overflowX = self.bodyOverflowX;
 
 					// call our constructor custom callback function
 					self.options.functionAfter.call(self.$el, self.$el);
@@ -727,19 +715,17 @@ if (!Element.prototype.closest) {
 
 				if (supportsTransitions()) {
 
-					self.$tooltip.clearQueue();
-					self.$tooltip.classList.remove('tooltipster-' + self.options.animation + '-show');
+					if(self.options.speed > 0) {
+						self.$tooltip.classList.remove('tooltipster-' + self.options.animation + '-show')
 						// for transitions only
-					self.$tooltip.classList.add('tooltipster-dying');
-
-					if(self.options.speed > 0) self.$tooltip.delay(self.options.speed);
-
-					self.$tooltip.queue(finish);
+						self.$tooltip.classList.add('tooltipster-dying');
+					}
 				}
 				else {
-					self.$tooltip
-						.stop()
-						.fadeOut(self.options.speed, finish);
+					self.$tooltip.style.opacity = '0';
+					setTimeout(function() {
+						self.$tooltip.style.display = 'none';
+					}, 1000);
 				}
 			}
 			// if the tooltip is already hidden, we still need to trigger the method custom callback
@@ -777,7 +763,7 @@ if (!Element.prototype.closest) {
 			var self = this;
 
 			// in case the tooltip has been removed from DOM manually
-			if (document.querySelector('body').querySelector(self.$tooltip).length !== 0) {
+			if (self.$tooltip.length !== 0) {
 
 				// reset width
 				self.$tooltip.style.width = '';
@@ -785,7 +771,7 @@ if (!Element.prototype.closest) {
 				// find variables to determine placement
 				self.elProxyPosition = self._repositionInfo(self.$elProxy);
 				var arrowReposition = null,
-					windowWidth = window.offsetHeight,
+					windowWidth = window.innerWidth,
 					// shorthand
 					proxy = self.elProxyPosition,
 					tooltipWidth = self.$tooltip.offsetWidth,
@@ -968,9 +954,9 @@ if (!Element.prototype.closest) {
 
 					// if the tooltip goes off boths sides of the page
 					if((myLeft < 0) && ((myLeftMirror + tooltipWidth) > windowWidth)) {
-						var borderWidth = parseFloat(getComputedStyle(self.$tooltip).style.borderWidth) * 2,
+						var borderWidth = parseFloat(getComputedStyle(self.$tooltip).getPropertyValue('border-width')) * 2,
 							newWidth = (tooltipWidth + myLeft) - borderWidth;
-						self.$tooltip.style.width =  newWidth + 'px';
+						self.$tooltip.style.width = newWidth + 'px';
 
 						tooltipHeight = self.$tooltip.offsetHeight;
 						myLeft = proxy.offset.left - offsetX - newWidth - 12 - borderWidth;
@@ -993,7 +979,7 @@ if (!Element.prototype.closest) {
 
 					// if the tooltip goes off boths sides of the page
 					if(((myLeft + tooltipWidth) > windowWidth) && (myLeftMirror < 0)) {
-						var borderWidth = parseFloat(getComputedStyle(self.$tooltip).style.borderWidth) * 2,
+						var borderWidth = parseFloat(getComputedStyle(self.$tooltip).getPropertyValue('border-width')) * 2,
 							newWidth = (windowWidth - myLeft) - borderWidth;
 						self.$tooltip.style.width = newWidth + 'px';
 
@@ -1016,7 +1002,7 @@ if (!Element.prototype.closest) {
 
 					// set color of the arrow
 					if(self.options.arrowColor.length < 1) {
-						var arrowColor = getComputedStyle(self.$tooltip).style.backgroundColor;
+						var arrowColor = getComputedStyle(self.$tooltip).getPropertyValue('background-color');
 					}
 					else {
 						var arrowColor = self.options.arrowColor;
@@ -1040,24 +1026,24 @@ if (!Element.prototype.closest) {
 
 					// building the logic to create the border around the arrow of the tooltip
 					if ((practicalPosition == 'top') || (practicalPosition == 'top-left') || (practicalPosition == 'top-right')) {
-						var tooltipBorderWidth = parseFloat(getComputedStyle(self.$tooltip).style.borderBottomWidth),
-							tooltipBorderColor = getComputedStyle(self.$tooltip).style.borderBottomColor;
+						var tooltipBorderWidth = parseFloat(getComputedStyle(self.$tooltip).borderBottomWidth),
+							tooltipBorderColor = getComputedStyle(self.$tooltip).borderBottomColor;
 					}
 					else if ((practicalPosition == 'bottom') || (practicalPosition == 'bottom-left') || (practicalPosition == 'bottom-right')) {
-						var tooltipBorderWidth = parseFloat(getComputedStyle(self.$tooltip).style.borderTopWidth),
-							tooltipBorderColor = getComputedStyle(self.$tooltip).style.borderTopColor;
+						var tooltipBorderWidth = parseFloat(getComputedStyle(self.$tooltip).borderTopWidth),
+							tooltipBorderColor = getComputedStyle(self.$tooltip).borderTopColor;
 					}
 					else if (practicalPosition == 'left') {
-						var tooltipBorderWidth = parseFloat(getComputedStyle(self.$tooltip).style.borderRightWidth),
-							tooltipBorderColor = getComputedStyle(self.$tooltip).style.borderRightColor;
+						var tooltipBorderWidth = parseFloat(getComputedStyle(self.$tooltip).borderRightWidth),
+							tooltipBorderColor = getComputedStyle(self.$tooltip).borderRightColor;
 					}
 					else if (practicalPosition == 'right') {
-						var tooltipBorderWidth = parseFloat(getComputedStyle(self.$tooltip).style.borderLeftWidth),
-							tooltipBorderColor = getComputedStyle(self.$tooltip).style.borderLeftColor;
+						var tooltipBorderWidth = parseFloat(getComputedStyle(self.$tooltip).borderLeftWidth),
+							tooltipBorderColor = getComputedStyle(self.$tooltip).borderLeftColor;
 					}
 					else {
-						var tooltipBorderWidth = parseFloat(getComputedStyle(self.$tooltip).style.borderBottomWidth),
-							tooltipBorderColor = getComputedStyle(self.$tooltip).style.borderBottomColor;
+						var tooltipBorderWidth = parseFloat(getComputedStyle(self.$tooltip).borderBottomWidth),
+							tooltipBorderColor = getComputedStyle(self.$tooltip).borderBottomColor;
 					}
 
 					if (tooltipBorderWidth > 1) {
@@ -1084,12 +1070,16 @@ if (!Element.prototype.closest) {
 					}
 
 					// if the arrow already exists, remove and replace it
-					var tooltipsterArrow = self.$tooltip.querySelector('.tooltipster-arrow');
-					tooltipsterArrow.parentNode.removeChild(tooltipsterArrow);
+					var tooltipArrow = self.$tooltip.querySelector('.tooltipster-arrow');
+					if (tooltipArrow) {
+						if (tooltipArrow.parentNode !== null) {
+							tooltipArrow.parentNode.removeChild(tooltipArrow);
+						}
+					}
 
 					// build out the arrow and append it
 					var arrowConstruct = '<div class="'+ arrowClass +' tooltipster-arrow" style="'+ arrowReposition +'">'+ arrowBorder +'<span style="border-color:'+ arrowColor +';"></span></div>';
-					self.$tooltip.innerHTML = arrowConstruct;
+					self.$tooltip.innerHTML += arrowConstruct;
 				}
 
 				// position the tooltip
@@ -1120,14 +1110,15 @@ if (!Element.prototype.closest) {
 
 			// remove the icon, if any
 			if (self.$el[0] !== self.$elProxy[0]) {
-				self.$elProxy.parentNode.removeChild(self.$elProxy);
+				if (self.$elProxy.parentNode !== null) {
+					self.$elProxy.parentNode.removeChild(self.$elProxy);
+				}
 			}
 
-			self.$el
-				.removeData(self.namespace)
-				.off('.'+ self.namespace);
+			self.$el.removeAttribute('data-' + self.namespace);
+			self.$el.removeEventListener('.'+ self.namespace);
 
-			var ns = self.$el.getAttribute('data-tooltipster-ns');
+			var ns = self.$el.data('tooltipster-ns');
 
 			// if there are no more tooltips on this element
 			if(ns.length === 1){
@@ -1234,12 +1225,12 @@ if (!Element.prototype.closest) {
 
 				var v = '#*$~&';
 
-				Array.prototype.forEach.call(this, function() {
+				this.each(function() {
 
 					// retrieve the namepaces of the tooltip(s) that exist on that element. We will interact with the first tooltip only.
-					var ns = this.getAttribute('datatooltipster-ns'),
+					var ns = $(this).data('tooltipster-ns'),
 						// self represents the instance of the first tooltipster plugin associated to the current HTML object of the loop
-						self = ns ? this.getAttribute('data-' + ns[0]) : null;
+						self = ns ? $(this).data(ns[0]) : null;
 
 					// if the current element holds a tooltipster instance
 					if (self) {
@@ -1279,11 +1270,11 @@ if (!Element.prototype.closest) {
 					debug = (debugIsSet && args[0].debug) || (!debugIsSet && defaults.debug);
 
 				// initialize a tooltipster instance for each element if it doesn't already have one or if the multiple option is set, and attach the object to it
-				Array.prototype.forEach.call(this, function () {
+				this.each(function () {
 
-					var go = false;
-					var ns = this.getAttribute('data-tooltipster-ns');
-					var	instance = null;
+					var go = false,
+						ns = $(this).data('tooltipster-ns'),
+						instance = null;
 
 					if (!ns) {
 						go = true;
@@ -1301,10 +1292,10 @@ if (!Element.prototype.closest) {
 						// save the reference of the new instance
 						if (!ns) ns = [];
 						ns.push(instance.namespace);
-						this.setAttribute('data-tooltipster-ns', ns)
+						$(this).data('tooltipster-ns', ns)
 
 						// save the instance itself
-						this.setAttribute('data-' + instance.namespace, instance);
+						$(this).data(instance.namespace, instance);
 					}
 
 					instances.push(instance);
@@ -1319,7 +1310,7 @@ if (!Element.prototype.closest) {
 	// quick & dirty compare function (not bijective nor multidimensional)
 	function areEqual(a,b) {
 		var same = true;
-		Array.prototype.forEach.call(a, function(el, i){
+		Array.prototype.forEach.call(a, function(el,i){
 			if(typeof b[i] === 'undefined' || a[i] !== b[i]){
 				same = false;
 				return false;
@@ -1333,9 +1324,11 @@ if (!Element.prototype.closest) {
 
 	// we'll assume the device has no mouse until we detect any mouse movement
 	var deviceHasMouse = false;
-	$('body').on('mousemove', function() {
-		deviceHasMouse = true;
-	});
+	setTimeout(function() {
+		document.querySelector('body').addEventListener('mousemove', function() {
+			deviceHasMouse = true;
+		})
+	}, 300);
 
 	function deviceIsPureTouch() {
 		return (!deviceHasMouse && deviceHasTouchCapability);
