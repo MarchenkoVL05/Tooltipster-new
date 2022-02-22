@@ -329,7 +329,6 @@ if (!Element.prototype.closest) {
 										self.$tooltip.classList.remove('tooltipster-dying')
 										self.$tooltip.classList.add('tooltipster-'+ self.options.animation +'-show');
 									},self.options.speed);
-									self.$tooltip.delay(self.options.speed)
 								}
 							}
 							else {
@@ -502,19 +501,18 @@ if (!Element.prototype.closest) {
 		_interval_set: function() {
 
 			var self = this;
-
 			self.checkInterval = setInterval(function() {
 
 				// if the tooltip and/or its interval should be stopped
 				if (
 						// if the origin has been removed
-						document.querySelector('body').querySelector(self.$el).length === 0
+						document.querySelector('.tooltipstered').length === 0
 						// if the elProxy has been removed
-					||	document.querySelector('body').querySelector(self.$elProxy).length === 0
+					||	document.querySelector('.tooltipstered').length === 0
 						// if the tooltip has been closed
 					||	self.Status == 'hidden'
 						// if the tooltip has somehow been removed
-					||	document.querySelector('body').querySelector(self.$tooltip).length === 0
+					||	document.querySelector('.tooltipstered').length === 0
 				) {
 					// remove the tooltip if it's still here
 					if (self.Status == 'shown' || self.Status == 'appearing') self.hide();
@@ -604,7 +602,6 @@ if (!Element.prototype.closest) {
 					if (self.options.updateAnimation) {
 
 						if (supportsTransitions()) {
-
 							self.$tooltip.style.width = '';
 							self.$tooltip.style.webkitTransition = 'all ' + self.options.speed + 'ms, width 0ms, height 0ms, left 0ms, top 0ms';
 							self.$tooltip.style.mozTransition = 'all ' + self.options.speed + 'ms, width 0ms, height 0ms, left 0ms, top 0ms';
